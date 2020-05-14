@@ -1,0 +1,380 @@
+---
+title: "Modeling and prediction for movies"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+John Wu
+
+2020.05.14
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(knitr)
+```
+
+### Load data
+
+```{r load-data}
+load("movies.Rdata")
+```
+
+* * *
+
+## Part 1: Data
+***1.1 Data information***  
+The data set is comprised of 651 randomly sampled movies produced and released before 2016. And it includes 32 variables of each movie.like movie information,some scores from IMDb and Rotten Tomatoes, and some information about the actor and director.
+
+
+***1.2 Generabizability***  
+This data is random sampled, so it can be generalized to all the audience within 11  related genres.
+
+***1.3 Causality***  
+This data is just an obervation, not an experiment,So we can not conclude any causality.
+
+***1.4 Potential bias***  
+The potential bias is the rating and score is only collected from website in IMDb and Rotten Tomatoes,furthermore, this is limited in users who sign up these two websites and also willing to write something.There is non-response bias in it.
+
+* * *
+
+## Part 2: Research question  
+In the given scenario,Our boss is interested in learning what attributes makes a movie popular.And for myself, I like watching movies very much, but there are too many movies released every year. In order to judge whether a movie is worth watching, I will go to the movie rating website to see comments and scores. So in this project, I will use the audience_score in the data set as a judgment of whether a movie is popular, and find out whether other variables in the data set can be used to predict audience_score.
+
+* * *
+
+## Part 3: Exploratory data analysis
+***3.1 Summary***  
+At first, we check the summary of this data set and find some information.
+```{r}
+summary(movies)
+```
+**Observations:**  
+(1)The majority title_type is Documentary in this data set.  
+(2)The genre of movies are divided into 10 categories,and plus an other category, at a glance,half of which are Drama.the other 9 categories are much less.  
+(3)The range of runtime is large, the shortest is 39 minutes, the longest is 267 minutes,and the average time of a movie is 105.8 minutes.  
+(4)In mpaa_rating, half of the movies are rated R.  
+(5)The data set contains movies relased from 1970 to 2014.  
+(6)The IMDb rating and vote numbers has wide range,the rating changes from 1.9 to 9.0, the number of votes changes from 180 to 893008.  
+(7)The critics_score has a wide range too, from 1.00 to 100.00.  
+(8)The audience_rating shows people chose  'Upright a little more compare to 'Spilled'.And audience_score ranges from 11.00 to 97.00.  
+(9)Only 22 of the movies get nominated for a best picture Oscar.and 7 of them won it.
+
+***3.2 Plot of numerical variables***    
+(1)runtime
+```{r}
+ggplot(data = movies, aes(y = runtime)) + geom_boxplot() + coord_flip() +  ggtitle('boxplot of runtime')+theme(plot.title=element_text(hjust=0.5))
+
+ggplot(data = movies, aes(x = runtime)) + geom_density() +  ggtitle('density of runtime')+theme(plot.title=element_text(hjust=0.5))
+```
+
+(2)ther_rel_year
+```{r}
+ggplot(data = movies, aes(x = thtr_rel_year)) + geom_density() + ggtitle('density plot of ther_rel_year') + theme(plot.title=element_text(hjust=0.5))
+```
+
+(3)imdb_rating
+```{r}
+ggplot(data = movies, aes(x = imdb_rating)) + geom_histogram() + ggtitle('histogram of imdb_rating') + theme(plot.title=element_text(hjust=0.5))
+```
+
+(4)imdb_num_votes
+```{r}
+ggplot(data = movies, aes(x = imdb_num_votes)) + geom_histogram() + ggtitle('histogram of imdb_num_votes') + theme(plot.title=element_text(hjust=0.5))
+```
+
+
+(5)critics_score
+```{r}
+ggplot(data = movies, aes(x = critics_score)) + geom_density() + ggtitle('density of critics_score') + theme(plot.title=element_text(hjust=0.5))
+```
+
+(6)audience_score
+```{r}
+ggplot(data = movies, aes(x = audience_score)) + geom_density() + ggtitle('density of audience_score') + theme(plot.title=element_text(hjust=0.5))
+```
+**Observations:**   
+(1)runtime: the plot is right skewed.  
+(2)ther_rel_year: the plot is left skewed, and in general, The closer we get to the present era, the more movies been released every year.  
+(3)imdb_rating: the rating score is focus on around 7 points.  
+(4)imdb_num_votes:The vast majority of films have a small number of votes, 75% of which are less than 58300.(3rd IQR in summary result)  
+(5)critics_score:The score mainly focuses on about 20-90 points, and the most commonly score is about 75-85 points.  
+(6)audience_score:he score mainly focuses on about 40-80 points, and the most commonly score is about 75-80 points.   
+
+***3.3 Plot of Non-numerical variables***    
+(1)genre  
+```{r}
+ggplot(data = movies, aes(x = genre)) + geom_bar() + theme(axis.text.x = element_text(angle = 60, hjust = 1)) + geom_text(aes(label=as.character(..count..)),stat="count",vjust = -0.1)
+```
+
+(2)audience_rating  
+```{r}
+ggplot(data = movies, aes(x = audience_rating)) + geom_bar() +  geom_text(aes(label=as.character(..count..)),stat="count",vjust=-0.3)
+```
+
+
+(3)best_pic_nom
+```{r}
+ggplot(data = movies, aes(x = best_pic_nom)) + geom_bar() +  geom_text(aes(label=as.character(..count..)),stat="count",vjust=-0.3)
+```
+
+(4)best_pic_win
+```{r}
+ggplot(data = movies, aes(x = best_pic_win)) + geom_bar() +  geom_text(aes(label=as.character(..count..)),stat="count",vjust=-0.3)
+```
+
+(5)best_dir_win
+```{r}
+ggplot(data = movies, aes(x = best_dir_win)) + geom_bar() +  geom_text(aes(label=as.character(..count..)),stat="count",vjust=-0.3)
+```
+**Observations:**   
+(1)genere: There are 46.9% movies are 'Drama', and two genres('Animation', 'Science Fiction & Fantasy')  have movies less than 10.  
+(2)audience_rating: The proportion of 'Spilled' is 42.2%(275 in 651), and for 'Upright' is 57.8%(376 in 651)  
+(3)best_pic_nom: Only  3.4%(22 in 651) movies get Oscar best picture nomination.  
+(4)best_pic_win: Merely 1.1%(7 in 651) movies win the best best picture of Oscar.   
+(5)best_dir_win: There are 6.6%(43 in 651) dirctors win the best director of Oscar.
+
+* * *
+
+## Part 4: Modeling   
+***4.1 Define popularity***   
+I use audience_score to define the popularity of a movie, as an audience I think this is the most suitable factor.
+
+***4.2 Variables used in modeling***   
+I want to chose the following variabls to build the full model:
+runtime, thtr_rel_year, imdb_rating, imdb_num_votes, critics_score, genre, audience_rating, best_pic_nom, best_pic_win and best_dir_win.
+
+***4.3 Model selection method***  
+In this project, I will use backwards elimination method to optimize model, And use adjusted R square to pick the most suitable model.  
+***4.4 Model optimiziting***  
+**Full model**  
+So let's see the full model:  
+```{r}
+model0 <- lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+summary(model0)
+```
+The adjusted R square of full model is 0.8862, and now we delete one variable at a time to find the change of adjusted R square.
+
+**Optimization step 1** 
+```{r}
+model1 <-lm(audience_score ~ thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+
+model2 <-lm(audience_score ~ runtime + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+
+model3 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+
+model4 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating  + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+
+model5 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes +  genre + audience_rating + best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+
+model6 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score +  audience_rating + best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+
+model7 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre +  best_pic_nom +  best_pic_win  +  best_dir_win,data = movies)
+
+model8 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating +  best_pic_win  +  best_dir_win,data = movies)
+
+model9 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +   best_dir_win,data = movies)
+
+model10 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+```
+
+then we creat a table to show each model's adjusted R square.    
+
+```{r}
+kable(data.frame(Model = c("Full model","Model 1","Model  2","Model 3","Model 4","Model 5","Model 6","Model 7","Model 8","Model 9","Model 10"),Adjusted_R_Square = c(summary(model0)$adj.r.squared,summary(model1)$adj.r.squared,summary(model2)$adj.r.squared,summary(model3)$adj.r.squared,summary(model4)$adj.r.squared,summary(model5)$adj.r.squared,summary(model6)$adj.r.squared,summary(model7)$adj.r.squared,summary(model8)$adj.r.squared,summary(model9)$adj.r.squared,summary(model10)$adj.r.squared)))
+```
+
+
+From this step,we find that  mode 10 has the highest adjusted R square 0.8863613. the deleted variable is best_dir_win.then we delete each one again to get the model with highest adjusted R square.    
+**Optimization step 2**  
+```{r}
+model0 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+
+model1 <-lm(audience_score ~ thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+
+model2 <-lm(audience_score ~ runtime + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+
+model3 <-lm(audience_score ~ runtime + thtr_rel_year +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+
+model4 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating + critics_score + genre + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+
+model5 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + genre + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+
+model6 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + audience_rating + best_pic_nom +  best_pic_win,data = movies)
+
+model7 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + best_pic_nom +  best_pic_win,data = movies)
+
+model8 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating  +  best_pic_win,data = movies)
+
+model9 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+kable(data.frame(Model = c("Full model","Model 1","Model  2","Model 3","Model 4","Model 5","Model 6","Model 7","Model 8","Model 9"),Adjusted_R_Square = c(summary(model0)$adj.r.squared,summary(model1)$adj.r.squared,summary(model2)$adj.r.squared,summary(model3)$adj.r.squared,summary(model4)$adj.r.squared,summary(model5)$adj.r.squared,summary(model6)$adj.r.squared,summary(model7)$adj.r.squared,summary(model8)$adj.r.squared,summary(model9)$adj.r.squared)))
+```
+
+
+From this step,we find that  mode 9 has  the highest adjusted R square 0.8863869. the deleted variable is best_pic_win.then we delete each one again to get the model with highest adjusted R square.  
+
+**Optimization step 3**
+```{r}
+model0 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model1 <-lm(audience_score ~thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model2 <-lm(audience_score ~ runtime + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model3 <-lm(audience_score ~ runtime + thtr_rel_year  +  imdb_num_votes + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model4 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +   critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model5 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + genre + audience_rating + best_pic_nom,data = movies)
+
+model6 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + audience_rating + best_pic_nom,data = movies)
+
+model7 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + best_pic_nom,data = movies)
+
+model8 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +  imdb_num_votes + critics_score + genre + audience_rating,data = movies)
+
+kable(data.frame(Model = c("Full model","Model 1","Model  2","Model 3","Model 4","Model 5","Model 6","Model 7","Model 8"),Adjusted_R_Square = c(summary(model0)$adj.r.squared,summary(model1)$adj.r.squared,summary(model2)$adj.r.squared,summary(model3)$adj.r.squared,summary(model4)$adj.r.squared,summary(model5)$adj.r.squared,summary(model6)$adj.r.squared,summary(model7)$adj.r.squared,summary(model8)$adj.r.squared)))
+
+```
+
+From this step,we find that full model has the highest adjusted R square 0.8863869, delete one variable can not increase it, but we notice that adjusted R square of model 4 is 0.8863000,this is so close to full model.so we check the summary of full model.
+```{r}
+summary(model0)
+```
+
+From this summary, we find that imdb_num_votes variable has a P value of 0.2236, this is a high P value and it is the variable we deleted in model 4, so we delete it for the parsimonious model, this is what we called expert opinion.  
+So let's look at our new full model, and decide if we can optimize it further.
+```{r}
+model0 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +   critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+summary(model0)
+```
+
+It seems that the variable critics_score can be droped, let's do the optimization once more.
+
+**Optimization step 4**
+```{r}
+model0 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +   critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model1 <-lm(audience_score ~ thtr_rel_year + imdb_rating + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model2 <-lm(audience_score ~ runtime + imdb_rating + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model3 <-lm(audience_score ~ runtime + thtr_rel_year + critics_score + genre + audience_rating + best_pic_nom,data = movies)
+
+model4 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating + genre + audience_rating + best_pic_nom,data = movies)
+
+model5 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +   critics_score + audience_rating + best_pic_nom,data = movies)
+
+model6 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +   critics_score + genre + best_pic_nom,data = movies)
+
+model7 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating +   critics_score + genre + audience_rating,data = movies)
+
+kable(data.frame(Model = c("Full model","Model 1","Model  2","Model 3","Model 4","Model 5","Model 6","Model 7"),Adjusted_R_Square = c(summary(model0)$adj.r.squared,summary(model1)$adj.r.squared,summary(model2)$adj.r.squared,summary(model3)$adj.r.squared,summary(model4)$adj.r.squared,summary(model5)$adj.r.squared,summary(model6)$adj.r.squared,summary(model7)$adj.r.squared)))
+```
+
+Again the full model has the highest adjusted r square, but given the P value of critics_score and the adjusted R square of model 4, we drop variable critics_score.
+Also we do optimization once more.  
+**Optimization step 5**
+```{r}
+model0 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating + genre + audience_rating + best_pic_nom,data = movies)
+
+model1 <-lm(audience_score ~ thtr_rel_year + imdb_rating + genre + audience_rating + best_pic_nom,data = movies)
+
+model2 <-lm(audience_score ~ runtime + imdb_rating + genre + audience_rating + best_pic_nom,data = movies)
+
+model3 <-lm(audience_score ~ runtime + thtr_rel_year + genre + audience_rating + best_pic_nom,data = movies)
+
+model4 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating  + audience_rating + best_pic_nom,data = movies)
+
+model5 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating + genre + best_pic_nom,data = movies)
+
+model6 <-lm(audience_score ~ runtime + thtr_rel_year + imdb_rating + genre + audience_rating,data = movies)
+
+kable(data.frame(Model = c("Full model","Model 1","Model  2","Model 3","Model 4","Model 5","Model 6"),Adjusted_R_Square = c(summary(model0)$adj.r.squared,summary(model1)$adj.r.squared,summary(model2)$adj.r.squared,summary(model3)$adj.r.squared,summary(model4)$adj.r.squared,summary(model5)$adj.r.squared,summary(model6)$adj.r.squared)))
+```
+
+The same scene again, full model has the highest adjusted R square, and I do not decide to use expert opinion any more, so this is our final model.    
+
+***4.5 Model diagnostics***  
+
+**4.5.1 Linear relationships between x and y**  
+```{r}
+ggplot(data = NULL, aes(x = movies$runtime[1:650], y = model0$residuals)) + geom_point() + geom_hline(yintercept = 0,color = 'blue') + xlab('runtime') + ylab('Residuals')
+
+ggplot(data = NULL, aes(x = movies$thtr_rel_year[1:650], y = model0$residuals)) + geom_point() + geom_hline(yintercept = 0,color = 'blue') + xlab('thtr_rel_year') + ylab('Residuals')
+
+ggplot(data = NULL, aes(x = movies$imdb_rating[1:650], y = model0$residuals)) + geom_point() + geom_hline(yintercept = 0,color = 'blue') + xlab('imdb_rating') + ylab('Residuals')
+```
+
+**Observations:**   
+Above three plots shows that the residuals are random scattered around 0. and this requirement meeted.   
+
+**4.5.2 Nearly normal residuals with mean 0** 
+```{r}
+hist(model0$residuals)
+qqnorm(model0$residuals)
+qqline(model0$residuals)
+```
+
+**Observations:**   
+The distribution seems normal in histogram, and in Q-Q plot it seems a little bit skew in the tail,but the deviations is small, so we can conclude this model meets the requirements.  
+
+**4.5.3 Constant variability of residuals**   
+```{r}
+ggplot(data = NULL, aes(x =model0$fitted, y = model0$residuals)) + geom_point() + geom_hline(yintercept = 0,color = 'blue') + xlab('Fitted') + ylab('Residuals')
+
+ggplot(data = NULL, aes(x =model0$fitted, y = abs(model0$residuals))) + geom_point() + geom_hline(yintercept = 0,color = 'blue') + xlab('Fitted') + ylab('Absolute Residuals')
+```
+
+**Observations:**  
+The plot shows the residuals variability is constant, no fan shape. this requirement is meeted.  
+
+**4.5.4 Independent residuals**   
+The data is random sampled, so the residuals are independent too.
+
+* * *
+
+## Part 5: Prediction  
+Now it's test time, I decide to use movie John Wick: Chapter 2 to predict.  
+**John Wick: Chapter 2**  
+runtime: 122  
+thtr_rel_time: 2017  
+imdb_rating: 7.5
+genre: Action & Adventure  
+audience_rating: Upright  
+best_pic_nom: no  
+
+actual audience_score: 85    
+***
+IMDb url: https://www.imdb.com/title/tt4425200/  
+Rotten Tomatoes url: https://www.rottentomatoes.com/m/john_wick_chapter_2  
+***
+```{r}
+movie_test <- data.frame(runtime = 122, thtr_rel_year = 2017, imdb_rating = 7.5, genre = 'Action & Adventure', audience_rating = 'Upright', best_pic_nom = 'no')
+predict(model0,movie_test, interval = 'predict',level = 0.95)
+```
+
+**Results**  
+The model we get predict the audience_score to be 79.85, given the above infomation, and it is close to the actual audience_score( 85% ).We also create a confidence interval for this movie, we are 95% confident that for given a movie with such information (runtime: 122, thtr_rel_time: 2017, imdb_rating: 7.5, genre: Action & Adventure  , audience_rating: Upright, best_pic_nom: no), the audience score is expected to between 66.26 to 93.43.And the true audience score of this movie is in this interval.
+
+* * *
+
+## Part 6: Conclusion  
+In this project,I create a full model to predicte audience score for a movie, and I use backward elimination method to make model parsimoious,in this method, adjusted R square is a tool to judge the model is good or bad, also an expert opinion is importment. at last, I choose a movie, use this model to predict the audience score, and it works well.  
+But there are some problems need to states:   
+(1)When considering to genre , the data set is so small, almost half of the movies are 'Drama', and the number of two genres('Animation', 'Science Fiction & Fantasy') movies are only 9, this would influence our modeling.  
+(2)some variables like imdb_num_votes has a wide range, it would be more useful if we transform this variable.  
+(3)some variables like imdb_rating and audience_score have higher variety when they are low,because good movie is suitable for more audience, but bad movie are not, some people may think it is good, some people may hate it. we may use some  polynomial or non-linear regression to deal with it,and of course this is beyond our course.  
+(4)more variables of movies may help our modeling.
+
+
+
